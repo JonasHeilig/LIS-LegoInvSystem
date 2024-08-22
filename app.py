@@ -98,11 +98,13 @@ def add_to_collection(set_id):
     else:
         return "Set not found.", 404
 
+
 @app.route('/collection_lists', methods=['GET'])
 def collection_lists():
     lists = db.session.query(LIS.owned_list).distinct().all()
     lists = [l[0] for l in lists if l[0]]
     return json.dumps(lists)
+
 
 @app.route('/')
 def index():
