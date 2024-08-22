@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIS LEGO Set - API</title>
+    <title>Search Local Database - LEGO Sets</title>
     <link rel="stylesheet" href="/static/bootstrap-5.3.3-dist/css/bootstrap.min.css">
     <script src="/static/bootstrap-5.3.3-dist/js/bootstrap.min.js"></script>
     <style>
@@ -32,13 +32,13 @@
 </head>
 <body>
     <div class="search-container">
-        <h1>LIS LEGO Set - Brickset API</h1>
-        <form action="/search_api" method="POST">
+        <h1>Search LIS Database - LEGO Sets</h1>
+        <form action="/search_db" method="POST">
             <div class="mb-3">
                 <label for="query" class="form-label">Enter EAN or LEGO Set Number:</label>
                 <input type="text" id="query" name="query" class="form-control" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100">LIS</button>
+            <button type="submit" class="btn btn-primary w-100">Search</button>
         </form>
     </div>
 </body>

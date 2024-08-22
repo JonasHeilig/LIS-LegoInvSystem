@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Searched Result</title>
+    <title>LIS Result</title>
     <link rel="stylesheet" href="/static/bootstrap-5.3.3-dist/css/bootstrap.min.css">
     <script src="/static/bootstrap-5.3.3-dist/js/bootstrap.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body, html {
             background-color: #f8f9fa;
@@ -32,13 +33,47 @@
 </head>
 <body>
     <div class="result-container col-md-6 col-lg-4">
-        <h1>Searched Result</h1>
+        <h1>LIS Result</h1>
         <p><strong>LEGO Set ID:</strong> {{ result.ls_id }}</p>
         <p><strong>Title:</strong> {{ result.title }}</p>
         <p><strong>EAN:</strong> {{ result.ean }}</p>
         <p><strong>Price:</strong> {{ result.price }}</p>
         <p><strong>Pieces:</strong> {{ result.pieces }}</p>
         <p><strong>Last Updated:</strong> {{ result.last_updated }}</p>
+
+        <form action="/add_to_collection/{{ result.id }}" method="POST">
+            <div class="mb-3">
+                <label for="owned_list" class="form-label">Select Collection List:</label>
+                <select id="owned_list" name="owned_list" class="form-select" required>
+                    <option value="">Choose a list</option>
+                    <option value="create_new">Create a new list</option>
+                </select>
+                <div id="new_list_div" class="mt-2" style="display: none;">
+                    <label for="new_list_name" class="form-label">New List Name:</label>
+                    <input type="text" id="new_list_name" name="new_list_name" class="form-control">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Add to Collection</button>
+        </form>
     </div>
+
+    <script>
+        $(document).ready(function() {
+            $.getJSON('/collection_lists', function(data) {
+                var select = $('#owned_list');
+                $.each(data, function(index, value) {
+                    select.append('<option value="' + value + '">' + value + '</option>');
+                });
+            });
+
+            $('#owned_list').change(function() {
+                if ($(this).val() === 'create_new') {
+                    $('#new_list_div').show();
+                } else {
+                    $('#new_list_div').hide();
+                }
+            });
+        });
+    </script>
 </body>
 </html>

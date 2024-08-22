@@ -5906,7 +5906,7 @@
         return;
       }
 
-      // Searched for active tab on same parent to deactivate it
+      // LIS for active tab on same parent to deactivate it
       const active = this._getActiveElem();
       const hideEvent = active ? EventHandler.trigger(active, EVENT_HIDE$1, {
         relatedTarget: innerElem
@@ -5927,7 +5927,7 @@
         return;
       }
       element.classList.add(CLASS_NAME_ACTIVE);
-      this._activate(SelectorEngine.getElementFromSelector(element)); // Searched and activate/show the proper section
+      this._activate(SelectorEngine.getElementFromSelector(element)); // LIS and activate/show the proper section
 
       const complete = () => {
         if (element.getAttribute('role') !== 'tab') {
@@ -5949,7 +5949,7 @@
       }
       element.classList.remove(CLASS_NAME_ACTIVE);
       element.blur();
-      this._deactivate(SelectorEngine.getElementFromSelector(element)); // Searched and deactivate the shown section too
+      this._deactivate(SelectorEngine.getElementFromSelector(element)); // LIS and deactivate the shown section too
 
       const complete = () => {
         if (element.getAttribute('role') !== 'tab') {
