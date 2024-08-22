@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Searched Result</title>
+    <link rel="stylesheet" href="/static/bootstrap-5.3.3-dist/css/bootstrap.min.css">
+    <script src="/static/bootstrap-5.3.3-dist/js/bootstrap.min.js"></script>
+    <style>
+        body, html {
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .result-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 30px;
+            border-radius: 40px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1, p {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="result-container col-md-6 col-lg-4">
+        <h1>Searched Result</h1>
+        <p><strong>LEGO Set ID:</strong> {{ result.ls_id }}</p>
+        <p><strong>Title:</strong> {{ result.title }}</p>
+        <p><strong>EAN:</strong> {{ result.ean }}</p>
+        <p><strong>Price:</strong> {{ result.price }}</p>
+        <p><strong>Pieces:</strong> {{ result.pieces }}</p>
+        <p><strong>Last Updated:</strong> {{ result.last_updated }}</p>
+    </div>
+</body>
+</html>

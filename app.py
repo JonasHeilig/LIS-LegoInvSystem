@@ -1,108 +1,71 @@
+import json
 from flask import Flask, request, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-import requests
 from datetime import datetime
 import config
+from bricksAPI import api_usage
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lis.db'
 db = SQLAlchemy(app)
 
 
-class Search(db.Model):
+class Searched(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     api_id = db.Column(db.Integer, unique=True, nullable=False)
     ls_id = db.Column(db.String(80), unique=True, nullable=False)
     title = db.Column(db.String(120), unique=True, nullable=False)
     ean = db.Column(db.String(80), unique=True, nullable=False)
     price = db.Column(db.String(120), nullable=True)
-    part_numbers = db.Column(db.String(120), nullable=True)
+    pieces = db.Column(db.Integer, nullable=True)
     last_updated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+    def set_part_numbers(self, part_numbers):
+        self.part_numbers = json.dumps(part_numbers)
 
-def get_user_hash():
-    url = 'https://brickset.com/api/v3.asmx/login'
-    params = {
-        'apiKey': config.api_key,
-        'username': config.username,
-        'password': config.password
-    }
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        return response.json().get('hash')
-    else:
-        return None
+    def get_part_numbers(self):
+        return json.loads(self.part_numbers) if self.part_numbers else []
 
 
-def get_set_data(query):
-    user_hash = get_user_hash()
-    if not user_hash:
-        return None
-
-    url = 'https://brickset.com/api/v3.asmx/getSets'
-    params = {
-        'apiKey': config.api_key,
-        'userHash': user_hash,
-        'query': query,
-    }
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        if 'sets' in data and data['sets']:
-            return data['sets'][0]
-    return None
-
-
-def get_price(data):
-    lego_com = data.get('LEGOCom', {})
-    if 'DE' in lego_com:
-        return f"{lego_com['DE']['retailPrice']}€"
-    elif 'US' in lego_com:
-        return f"${lego_com['US']['retailPrice']}"
-    return None
-
-
-@app.route('/search', methods=['GET', 'POST'])
-def search():
+@app.route('/search_api', methods=['GET', 'POST'])
+def search_api():
     if request.method == 'POST':
         query = request.form.get('query')
         if query:
-            result = Search.query.filter((Search.ean == query) | (Search.ls_id == query)).first()
-            if result:
-                data = get_set_data(result.ls_id)
-                if data:
+            data = api_usage.get_set_data(query)
+            if data:
+                result = Searched.query.filter(
+                    (Searched.ean == data['ean']) | (Searched.ls_id == data['number'])).first()
+                if result:
+                    result.api_id = data['setID']
+                    result.ls_id = data['number']
                     result.title = data['name']
-                    result.part_numbers = ','.join([part['partNumber'] for part in data.get('minifigs', [])])
-                    result.price = get_price(data)
+                    result.price = data['price']
+                    result.ean = data['ean']
+                    result.pieces = data.get('pieces', 0)
                     result.last_updated = datetime.utcnow()
-                    db.session.commit()
-                    return render_template('result.html', result=result)
                 else:
-                    return "Set not found on Brickset API.", 404
-            else:
-                data = get_set_data(query)
-                if data:
-                    new_search = Search(
+                    result = Searched(
                         api_id=data['setID'],
                         ls_id=data['number'],
                         title=data['name'],
-                        ean=query if query.isdigit() else '',
-                        price=get_price(data),
-                        part_numbers=','.join([part['partNumber'] for part in data.get('minifigs', [])]),
+                        ean=data['ean'],
+                        price=data['price'],
+                        pieces=data.get('pieces', 0),
                         last_updated=datetime.utcnow()
                     )
-                    db.session.add(new_search)
-                    db.session.commit()
-                    return render_template('result.html', result=new_search)
-                else:
-                    return "Set not found on Brickset API.", 404
+                    db.session.add(result)
+                db.session.commit()
+                return render_template('result.html', result=result)
+            else:
+                return "Set not found on Brickset API.", 404
 
-    return render_template('search.html')
+    return render_template('search_api.html')
 
 
 @app.route('/')
-def home():
-    return redirect(url_for('search'))
+def index():
+    return redirect(url_for('search_api'))
 
 
 if __name__ == '__main__':
