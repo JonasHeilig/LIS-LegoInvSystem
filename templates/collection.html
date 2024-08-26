@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ list_name }} - Collection</title>
+    <link rel="stylesheet" href="/static/bootstrap-5.3.3-dist/css/bootstrap.min.css">
+    <script src="/static/bootstrap-5.3.3-dist/js/bootstrap.min.js"></script>
+    <style>
+        body, html {
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            padding: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .row {
+            margin-bottom: 20px;
+        }
+        .pagination {
+            justify-content: center;
+        }
+        .btn-instructions {
+            background-color: orange;
+            color: white;
+            border: none;
+        }
+        .btn-instructions:hover {
+            background-color: #ff8c00;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ list_name }} Collection</h1>
+        <div class="row">
+            {% for set in sets.items %}
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ set.lis_set.image_url }}" class="card-img-top" alt="{{ set.lis_set.title }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ set.lis_set.title }}</h5>
+                        <p class="card-text"><strong>Set ID:</strong> {{ set.lis_set.ls_id }}</p>
+                        <p class="card-text"><strong>Price:</strong> {{ set.lis_set.price }}</p>
+                        <p class="card-text"><strong>Pieces:</strong> {{ set.lis_set.pieces }}</p>
+                        <a href="{{ url_for('set_detail', set_id=set.lis_set.id) }}" class="btn btn-primary w-100">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                {% if sets.has_prev %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('collection', list_name=list_name, page=sets.prev_num) }}">Previous</a></li>
+                {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
+                {% endif %}
+                {% if sets.has_next %}
+                <li class="page-item"><a class="page-link" href="{{ url_for('collection', list_name=list_name, page=sets.next_num) }}">Next</a></li>
+                {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</body>
+</html>

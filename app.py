@@ -37,6 +37,8 @@ class Collection(db.Model):
 
 @app.route('/search_api', methods=['GET', 'POST'])
 def search_api():
+    collection_lists = db.session.query(Collection.list_name).distinct().all()
+    collection_lists = [l[0] for l in collection_lists if l[0]]
     if request.method == 'POST':
         query = request.form.get('query')
         if query:
@@ -66,11 +68,11 @@ def search_api():
                     )
                     db.session.add(result)
                 db.session.commit()
-                return render_template('result.html', result=result)
+                return render_template('result.html', result=result, collection_lists=collection_lists)
             else:
                 return "Set not found on Brickset API.", 404
 
-    return render_template('search_api.html')
+    return render_template('search_api.html', collection_lists=collection_lists)
 
 
 @app.route('/search_db', methods=['GET', 'POST'])
@@ -126,6 +128,35 @@ def collection(list_name):
         return render_template('collection.html', sets=sets, list_name=list_name)
     else:
         return "No sets found in this list.", 404
+
+
+@app.route('/set/<int:set_id>', methods=['GET', 'POST'])
+def set_detail(set_id):
+    set_item = LIS.query.get_or_404(set_id)
+    collection_lists = db.session.query(Collection.list_name).distinct().all()
+    collection_lists = [l[0] for l in collection_lists if l[0]]
+    if request.method == 'POST':
+        selected_list = request.form.get('owned_list')
+        if selected_list == 'create_new':
+            new_list_name = request.form.get('new_list_name')
+            if new_list_name:
+                selected_list = new_list_name
+            else:
+                return "Please provide a name for the new list.", 400
+
+        existing_collection = Collection.query.filter_by(set_id=set_id, list_name=selected_list).first()
+        if existing_collection:
+            if 'owned_pieces' in request.form:
+                existing_collection.lis_set.owned_pieces = int(request.form.get('owned_pieces'))
+                db.session.commit()
+        else:
+            collection_entry = Collection(list_name=selected_list, set_id=set_id)
+            db.session.add(collection_entry)
+            db.session.commit()
+
+        return redirect(url_for('set_detail', set_id=set_id))
+
+    return render_template('set_detail.html', set_item=set_item, collection_lists=collection_lists)
 
 
 @app.route('/')

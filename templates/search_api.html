@@ -3,42 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LIS LEGO Set - API</title>
+    <title>Search API</title>
     <link rel="stylesheet" href="/static/bootstrap-5.3.3-dist/css/bootstrap.min.css">
     <script src="/static/bootstrap-5.3.3-dist/js/bootstrap.min.js"></script>
     <style>
-        body {
+        body, html {
             background-color: #f8f9fa;
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .search-container {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translateX(-50%);
             background-color: rgba(255, 255, 255, 0.8);
             padding: 30px;
-            border-radius: 40px;
+            border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 400px;
-        }
-        h1, form {
-            text-align: center;
+            max-width: 600px;
         }
     </style>
 </head>
 <body>
     <div class="search-container">
-        <h1>LIS LEGO Set - Brickset API</h1>
+        <h1>Search LEGO Sets</h1>
         <form action="/search_api" method="POST">
             <div class="mb-3">
-                <label for="query" class="form-label">Enter EAN or LEGO Set Number:</label>
+                <label for="query" class="form-label">Search Query:</label>
                 <input type="text" id="query" name="query" class="form-control" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100">LIS</button>
+            <button type="submit" class="btn btn-primary w-100">Search</button>
         </form>
     </div>
 </body>
