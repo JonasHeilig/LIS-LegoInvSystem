@@ -22,6 +22,7 @@ def extract_set_data(json_data):
         'ean': set_info.get('barcode', {}).get('EAN'),
         'price': set_info.get('LEGOCom', {}).get('DE', {}).get('retailPrice'),
         'pieces': pieces,
+        'image_url': set_info['image']['imageURL'],
     }
 
 

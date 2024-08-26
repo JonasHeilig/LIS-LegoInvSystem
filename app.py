@@ -11,6 +11,7 @@ db = SQLAlchemy(app)
 
 
 class LIS(db.Model):
+    __tablename__ = 'lis'
     id = db.Column(db.Integer, primary_key=True)
     api_id = db.Column(db.Integer, unique=True, nullable=False)
     ls_id = db.Column(db.String(80), unique=True, nullable=False)
@@ -18,12 +19,20 @@ class LIS(db.Model):
     ean = db.Column(db.String(80), unique=True, nullable=False)
     price = db.Column(db.String(120), nullable=True)
     pieces = db.Column(db.Integer, nullable=True)
-
+    image_url = db.Column(db.String(255), nullable=True)
     owned = db.Column(db.Boolean, nullable=True, default=False)
     owned_pieces = db.Column(db.Integer, nullable=True, default=0)
     owned_list = db.Column(db.String(120), nullable=True)
-
     last_updated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class Collection(db.Model):
+    __tablename__ = 'collection'
+    id = db.Column(db.Integer, primary_key=True)
+    list_name = db.Column(db.String(120), nullable=False)
+    set_id = db.Column(db.Integer, db.ForeignKey('lis.id'), nullable=False)
+    added_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    lis_set = db.relationship('LIS', backref=db.backref('collections', lazy=True))
 
 
 @app.route('/search_api', methods=['GET', 'POST'])
@@ -42,6 +51,7 @@ def search_api():
                     result.price = data['price']
                     result.ean = data['ean']
                     result.pieces = data.get('pieces', 0)
+                    result.image_url = data.get('image_url')
                     result.last_updated = datetime.utcnow()
                 else:
                     result = LIS(
@@ -51,6 +61,7 @@ def search_api():
                         ean=data['ean'],
                         price=data['price'],
                         pieces=data.get('pieces', 0),
+                        image_url=data.get('image_url'),
                         last_updated=datetime.utcnow()
                     )
                     db.session.add(result)
@@ -86,14 +97,14 @@ def add_to_collection(set_id):
         if selected_list == 'create_new':
             new_list_name = request.form.get('new_list_name')
             if new_list_name:
-                set_item.owned_list = new_list_name
+                selected_list = new_list_name
             else:
                 return "Please provide a name for the new list.", 400
-        else:
-            set_item.owned_list = selected_list
 
-        set_item.owned = True
+        collection_entry = Collection(list_name=selected_list, set_id=set_id)
+        db.session.add(collection_entry)
         db.session.commit()
+
         return redirect(url_for('index'))
     else:
         return "Set not found.", 404
@@ -101,14 +112,27 @@ def add_to_collection(set_id):
 
 @app.route('/collection_lists', methods=['GET'])
 def collection_lists():
-    lists = db.session.query(LIS.owned_list).distinct().all()
+    lists = db.session.query(Collection.list_name).distinct().all()
     lists = [l[0] for l in lists if l[0]]
     return json.dumps(lists)
 
 
+@app.route('/collection/<string:list_name>', methods=['GET'])
+def collection(list_name):
+    page = request.args.get('page', 1, type=int)
+    per_page = 17
+    sets = Collection.query.filter_by(list_name=list_name).paginate(page=page, per_page=per_page)
+    if sets.items:
+        return render_template('collection.html', sets=sets, list_name=list_name)
+    else:
+        return "No sets found in this list.", 404
+
+
 @app.route('/')
 def index():
-    return redirect(url_for('search_api'))
+    collection_lists = db.session.query(Collection.list_name).distinct().all()
+    collection_lists = [l[0] for l in collection_lists if l[0]]
+    return render_template('index.html', collection_lists=collection_lists)
 
 
 if __name__ == '__main__':
