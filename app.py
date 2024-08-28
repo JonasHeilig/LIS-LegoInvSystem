@@ -37,8 +37,8 @@ class Collection(db.Model):
 
 @app.route('/search_api', methods=['GET', 'POST'])
 def search_api():
-    collection_lists = db.session.query(Collection.list_name).distinct().all()
-    collection_lists = [l[0] for l in collection_lists if l[0]]
+    collection_names = db.session.query(Collection.list_name).distinct().all()
+    collection_names = [name[0] for name in collection_names if name[0]]
     if request.method == 'POST':
         query = request.form.get('query')
         if query:
@@ -68,11 +68,11 @@ def search_api():
                     )
                     db.session.add(result)
                 db.session.commit()
-                return render_template('result.html', result=result, collection_lists=collection_lists)
+                return render_template('result.html', result=result, collection_names=collection_names)
             else:
                 return "Set not found on Brickset API.", 404
 
-    return render_template('search_api.html', collection_lists=collection_lists)
+    return render_template('search_api.html', collection_names=collection_names)
 
 
 @app.route('/search_db', methods=['GET', 'POST'])
@@ -115,8 +115,8 @@ def add_to_collection(set_id):
 @app.route('/collection_lists', methods=['GET'])
 def collection_lists():
     lists = db.session.query(Collection.list_name).distinct().all()
-    lists = [l[0] for l in lists if l[0]]
-    return json.dumps(lists)
+    list_names = [name[0] for name in lists if name[0]]
+    return json.dumps(list_names)
 
 
 @app.route('/collection/<string:list_name>', methods=['GET'])
@@ -133,8 +133,8 @@ def collection(list_name):
 @app.route('/set/<int:set_id>', methods=['GET', 'POST'])
 def set_detail(set_id):
     set_item = LIS.query.get_or_404(set_id)
-    collection_lists = db.session.query(Collection.list_name).distinct().all()
-    collection_lists = [l[0] for l in collection_lists if l[0]]
+    collection_names = db.session.query(Collection.list_name).distinct().all()
+    collection_names = [name[0] for name in collection_names if name[0]]
     if request.method == 'POST':
         selected_list = request.form.get('owned_list')
         if selected_list == 'create_new':
@@ -156,14 +156,14 @@ def set_detail(set_id):
 
         return redirect(url_for('set_detail', set_id=set_id))
 
-    return render_template('set_detail.html', set_item=set_item, collection_lists=collection_lists)
+    return render_template('set_detail.html', set_item=set_item, collection_names=collection_names)
 
 
 @app.route('/')
 def index():
-    collection_lists = db.session.query(Collection.list_name).distinct().all()
-    collection_lists = [l[0] for l in collection_lists if l[0]]
-    return render_template('index.html', collection_lists=collection_lists)
+    collection_names = db.session.query(Collection.list_name).distinct().all()
+    collection_names = [name[0] for name in collection_names if name[0]]
+    return render_template('index.html', collection_names=collection_names)
 
 
 if __name__ == '__main__':
