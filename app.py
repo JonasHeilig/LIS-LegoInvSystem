@@ -17,12 +17,11 @@ class LIS(db.Model):
     ls_id = db.Column(db.String(80), unique=True, nullable=False)
     title = db.Column(db.String(120), unique=True, nullable=False)
     ean = db.Column(db.String(80), unique=True, nullable=False)
-    price = db.Column(db.String(120), nullable=True)
+    price = db.Column(db.Float, nullable=True)
     pieces = db.Column(db.Integer, nullable=True)
     image_url = db.Column(db.String(255), nullable=True)
     owned = db.Column(db.Boolean, nullable=True, default=False)
     owned_pieces = db.Column(db.Integer, nullable=True, default=0)
-    owned_list = db.Column(db.String(120), nullable=True)
     last_updated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
@@ -31,6 +30,7 @@ class Collection(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     list_name = db.Column(db.String(120), nullable=False)
     set_id = db.Column(db.Integer, db.ForeignKey('lis.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
     added_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     lis_set = db.relationship('LIS', backref=db.backref('collections', lazy=True))
 
@@ -42,16 +42,33 @@ def search_api():
         query = request.form.get('query')
         if query:
             data = api_usage.get_set_data(query)
-            if data:
+            if data and 'sets' in data and len(data['sets']) > 0:
+                set_data = data['sets'][0]
                 result = LIS.query.filter(
-                    (LIS.ean == data['ean']) | (LIS.ls_id == data['number'])).first()
+                    (LIS.ean == set_data.get('ean', '')) |
+                    (LIS.ls_id == set_data.get('number', ''))
+                ).first()
+
                 if result:
-                    for key, value in data.items():
-                        setattr(result, key, value)
+                    result.title = set_data.get('name', '')
+                    result.ean = set_data.get('ean', '')
+                    result.price = set_data.get('price', 0)
+                    result.pieces = set_data.get('pieces', 0)
+                    result.image_url = set_data.get('image_url', '')
                     result.last_updated = datetime.utcnow()
                 else:
-                    result = LIS(**data, last_updated=datetime.utcnow())
+                    result = LIS(
+                        api_id=set_data.get('setID', 0),
+                        ls_id=set_data.get('number', ''),
+                        title=set_data.get('name', ''),
+                        ean=set_data.get('ean', ''),
+                        price=set_data.get('price', 0),
+                        pieces=set_data.get('pieces', 0),
+                        image_url=set_data.get('image_url', ''),
+                        last_updated=datetime.utcnow()
+                    )
                     db.session.add(result)
+
                 db.session.commit()
                 return render_template('result.html', result=result, collection_names=collection_names)
             else:
@@ -80,6 +97,8 @@ def search_db():
 def add_to_collection(set_id):
     set_item = LIS.query.get_or_404(set_id)
     selected_list = request.form.get('owned_list')
+    quantity = int(request.form.get('quantity', 0))
+
     if selected_list == 'create_new':
         new_list_name = request.form.get('new_list_name')
         if new_list_name:
@@ -87,20 +106,30 @@ def add_to_collection(set_id):
         else:
             return "Please provide a name for the new list.", 400
 
-    if Collection.query.filter_by(set_id=set_id, list_name=selected_list).first():
-        return "Set already in the selected collection.", 400
-
-    collection_entry = Collection(list_name=selected_list, set_id=set_id)
-    db.session.add(collection_entry)
+    collection_entry = Collection.query.filter_by(set_id=set_id, list_name=selected_list).first()
+    if collection_entry:
+        collection_entry.quantity = quantity
+    else:
+        collection_entry = Collection(list_name=selected_list, set_id=set_id, quantity=quantity)
+        db.session.add(collection_entry)
     db.session.commit()
 
     return redirect(url_for('index'))
 
 
+@app.route('/update_collection/<int:set_id>/<string:list_name>', methods=['POST'])
+def update_collection(set_id, list_name):
+    quantity = int(request.form.get('quantity', 0))
+    collection_entry = Collection.query.filter_by(set_id=set_id, list_name=list_name).first_or_404()
+    collection_entry.quantity = quantity
+    db.session.commit()
+    return redirect(url_for('collection', list_name=list_name))
+
+
 @app.route('/collection_lists', methods=['GET'])
 def collection_lists():
     lists = db.session.query(Collection.list_name).distinct().all()
-    return json.dumps([name[0] for name in lists if name[0]])
+    return jsonify([name[0] for name in lists if name[0]])
 
 
 @app.route('/collection/<string:list_name>', methods=['GET'])
@@ -108,8 +137,21 @@ def collection(list_name):
     page = request.args.get('page', 1, type=int)
     per_page = 17
     sets = Collection.query.filter_by(list_name=list_name).paginate(page=page, per_page=per_page)
-    if sets.items:
-        return render_template('collection.html', sets=sets, list_name=list_name)
+    set_details = []
+    for collection in sets.items:
+        set_item = LIS.query.get(collection.set_id)
+        if set_item:
+            set_details.append({
+                'id': set_item.id,
+                'title': set_item.title,
+                'image_url': set_item.image_url,
+                'ls_id': set_item.ls_id,
+                'price': set_item.price,
+                'pieces': set_item.pieces,
+                'quantity': collection.quantity
+            })
+    if set_details:
+        return render_template('collection.html', sets=sets, list_name=list_name, set_details=set_details)
     else:
         return "No sets found in this list.", 404
 
@@ -120,6 +162,7 @@ def set_detail(set_id):
     collection_names = [name[0] for name in db.session.query(Collection.list_name).distinct().all() if name[0]]
     if request.method == 'POST':
         selected_list = request.form.get('owned_list')
+        quantity = int(request.form.get('quantity', 0))
         if selected_list == 'create_new':
             new_list_name = request.form.get('new_list_name')
             if new_list_name:
@@ -129,17 +172,18 @@ def set_detail(set_id):
 
         collection_entry = Collection.query.filter_by(set_id=set_id, list_name=selected_list).first()
         if collection_entry:
-            if 'owned_pieces' in request.form:
-                collection_entry.lis_set.owned_pieces = int(request.form.get('owned_pieces', 0))
-                db.session.commit()
+            collection_entry.quantity = quantity
         else:
-            collection_entry = Collection(list_name=selected_list, set_id=set_id)
+            collection_entry = Collection(list_name=selected_list, set_id=set_id, quantity=quantity)
             db.session.add(collection_entry)
-            db.session.commit()
-
+        db.session.commit()
         return redirect(url_for('set_detail', set_id=set_id))
 
-    return render_template('set_detail.html', set_item=set_item, collection_names=collection_names)
+    collection_entries = Collection.query.filter_by(set_id=set_id).all()
+    collections = {entry.list_name: entry.quantity for entry in collection_entries}
+
+    return render_template('set_detail.html', set_item=set_item, collection_names=collection_names,
+                           collections=collections)
 
 
 @app.route('/')

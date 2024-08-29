@@ -20,7 +20,6 @@ class LIS(db.Model):
     image_url = db.Column(db.String(255), nullable=True)
     owned = db.Column(db.Boolean, nullable=True, default=False)
     owned_pieces = db.Column(db.Integer, nullable=True, default=0)
-    owned_list = db.Column(db.String(120), nullable=True)
     last_updated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
@@ -29,6 +28,7 @@ class Collection(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     list_name = db.Column(db.String(120), nullable=False)
     set_id = db.Column(db.Integer, db.ForeignKey('lis.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
     added_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     lis_set = db.relationship('LIS', backref=db.backref('collections', lazy=True))
 

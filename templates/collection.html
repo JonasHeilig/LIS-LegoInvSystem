@@ -39,6 +39,7 @@
 <body>
     <div class="container">
         <h1>{{ list_name }} Collection</h1>
+        <p><strong>Unique Sets:</strong> {{ unique_set_count }}</p>
         <div class="row">
             {% for set in sets.items %}
             <div class="col-md-4">
@@ -49,6 +50,7 @@
                         <p class="card-text"><strong>Set ID:</strong> {{ set.lis_set.ls_id }}</p>
                         <p class="card-text"><strong>Price:</strong> {{ set.lis_set.price }}</p>
                         <p class="card-text"><strong>Pieces:</strong> {{ set.lis_set.pieces }}</p>
+                        <p class="card-text"><strong>Owned:</strong> {{ set_counts[set.lis_set.id] }}</p>
                         <a href="{{ url_for('set_detail', set_id=set.lis_set.id) }}" class="btn btn-primary w-100">View Details</a>
                     </div>
                 </div>
