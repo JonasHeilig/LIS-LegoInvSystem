@@ -37,8 +37,7 @@ class Collection(db.Model):
 
 @app.route('/search_api', methods=['GET', 'POST'])
 def search_api():
-    collection_names = db.session.query(Collection.list_name).distinct().all()
-    collection_names = [name[0] for name in collection_names if name[0]]
+    collection_names = [name[0] for name in db.session.query(Collection.list_name).distinct().all() if name[0]]
     if request.method == 'POST':
         query = request.form.get('query')
         if query:
@@ -47,25 +46,11 @@ def search_api():
                 result = LIS.query.filter(
                     (LIS.ean == data['ean']) | (LIS.ls_id == data['number'])).first()
                 if result:
-                    result.api_id = data['setID']
-                    result.ls_id = data['number']
-                    result.title = data['name']
-                    result.price = data['price']
-                    result.ean = data['ean']
-                    result.pieces = data.get('pieces', 0)
-                    result.image_url = data.get('image_url')
+                    for key, value in data.items():
+                        setattr(result, key, value)
                     result.last_updated = datetime.utcnow()
                 else:
-                    result = LIS(
-                        api_id=data['setID'],
-                        ls_id=data['number'],
-                        title=data['name'],
-                        ean=data['ean'],
-                        price=data['price'],
-                        pieces=data.get('pieces', 0),
-                        image_url=data.get('image_url'),
-                        last_updated=datetime.utcnow()
-                    )
+                    result = LIS(**data, last_updated=datetime.utcnow())
                     db.session.add(result)
                 db.session.commit()
                 return render_template('result.html', result=result, collection_names=collection_names)
@@ -93,30 +78,29 @@ def search_db():
 
 @app.route('/add_to_collection/<int:set_id>', methods=['POST'])
 def add_to_collection(set_id):
-    set_item = LIS.query.get(set_id)
-    if set_item:
-        selected_list = request.form.get('owned_list')
-        if selected_list == 'create_new':
-            new_list_name = request.form.get('new_list_name')
-            if new_list_name:
-                selected_list = new_list_name
-            else:
-                return "Please provide a name for the new list.", 400
+    set_item = LIS.query.get_or_404(set_id)
+    selected_list = request.form.get('owned_list')
+    if selected_list == 'create_new':
+        new_list_name = request.form.get('new_list_name')
+        if new_list_name:
+            selected_list = new_list_name
+        else:
+            return "Please provide a name for the new list.", 400
 
-        collection_entry = Collection(list_name=selected_list, set_id=set_id)
-        db.session.add(collection_entry)
-        db.session.commit()
+    if Collection.query.filter_by(set_id=set_id, list_name=selected_list).first():
+        return "Set already in the selected collection.", 400
 
-        return redirect(url_for('index'))
-    else:
-        return "Set not found.", 404
+    collection_entry = Collection(list_name=selected_list, set_id=set_id)
+    db.session.add(collection_entry)
+    db.session.commit()
+
+    return redirect(url_for('index'))
 
 
 @app.route('/collection_lists', methods=['GET'])
 def collection_lists():
     lists = db.session.query(Collection.list_name).distinct().all()
-    list_names = [name[0] for name in lists if name[0]]
-    return json.dumps(list_names)
+    return json.dumps([name[0] for name in lists if name[0]])
 
 
 @app.route('/collection/<string:list_name>', methods=['GET'])
@@ -133,8 +117,7 @@ def collection(list_name):
 @app.route('/set/<int:set_id>', methods=['GET', 'POST'])
 def set_detail(set_id):
     set_item = LIS.query.get_or_404(set_id)
-    collection_names = db.session.query(Collection.list_name).distinct().all()
-    collection_names = [name[0] for name in collection_names if name[0]]
+    collection_names = [name[0] for name in db.session.query(Collection.list_name).distinct().all() if name[0]]
     if request.method == 'POST':
         selected_list = request.form.get('owned_list')
         if selected_list == 'create_new':
@@ -144,10 +127,10 @@ def set_detail(set_id):
             else:
                 return "Please provide a name for the new list.", 400
 
-        existing_collection = Collection.query.filter_by(set_id=set_id, list_name=selected_list).first()
-        if existing_collection:
+        collection_entry = Collection.query.filter_by(set_id=set_id, list_name=selected_list).first()
+        if collection_entry:
             if 'owned_pieces' in request.form:
-                existing_collection.lis_set.owned_pieces = int(request.form.get('owned_pieces'))
+                collection_entry.lis_set.owned_pieces = int(request.form.get('owned_pieces', 0))
                 db.session.commit()
         else:
             collection_entry = Collection(list_name=selected_list, set_id=set_id)
@@ -161,8 +144,7 @@ def set_detail(set_id):
 
 @app.route('/')
 def index():
-    collection_names = db.session.query(Collection.list_name).distinct().all()
-    collection_names = [name[0] for name in collection_names if name[0]]
+    collection_names = [name[0] for name in db.session.query(Collection.list_name).distinct().all() if name[0]]
     return render_template('index.html', collection_names=collection_names)
 
 
