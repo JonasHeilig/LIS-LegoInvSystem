@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Set Detail</title>
+    <title>{{ set_item.title }} - Details</title>
     <link rel="stylesheet" href="/static/bootstrap-5.3.3-dist/css/bootstrap.min.css">
     <script src="/static/bootstrap-5.3.3-dist/js/bootstrap.min.js"></script>
     <style>
@@ -17,92 +17,83 @@
             justify-content: center;
             align-items: center;
         }
-        .set-detail-container {
+        .container {
             background-color: rgba(255, 255, 255, 0.8);
             padding: 30px;
-            border-radius: 40px;
+            border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 100%;
             max-width: 600px;
-            max-height: 100vh;
-            overflow-y: auto;
         }
-        h1, p {
-            text-align: center;
-        }
-        .img-container {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .btn-update {
-            background-color: orange;
-            color: white;
-            border: none;
-        }
-        .btn-update:hover {
-            background-color: #ff8c00;
-            color: white;
+        .card {
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="set-detail-container">
-        <h1>{{ set_item.title }}</h1>
-        <div class="img-container">
-            <img src="{{ set_item.image_url }}" alt="LEGO Set Image" class="img-fluid">
+    <div class="container">
+        <h1>{{ set_item.title }} - Set Details</h1>
+        <div class="card">
+            <img src="{{ set_item.image_url }}" class="card-img-top" alt="{{ set_item.title }}">
+            <div class="card-body">
+                <h5 class="card-title">{{ set_item.title }}</h5>
+                <p class="card-text"><strong>Set ID:</strong> {{ set_item.ls_id }}</p>
+                <p class="card-text"><strong>Price:</strong> {{ set_item.price }}</p>
+                <p class="card-text"><strong>Pieces:</strong> {{ set_item.pieces }}</p>
+            </div>
         </div>
-        <p><strong>LEGO Set ID:</strong> {{ set_item.ls_id }}</p>
-        <p><strong>EAN:</strong> {{ set_item.ean }}</p>
-        <p><strong>Price:</strong> {{ set_item.price }}</p>
-        <p><strong>Pieces:</strong> {{ set_item.pieces }}</p>
 
-        <form action="/add_to_collection/{{ set_item.id }}" method="POST">
-            <div class="form-group">
-                <label for="owned_list">Add to Collection:</label>
-                <select name="owned_list" id="owned_list" class="form-select">
-                    {% for name in collection_names %}
-                        <option value="{{ name }}">{{ name }}</option>
+        <h2>Update Collection</h2>
+        <form action="{{ url_for('set_detail', set_id=set_item.id) }}" method="POST">
+            <div class="mb-3">
+                <label for="owned_list" class="form-label">Select Collection:</label>
+                <select id="owned_list" name="owned_list" class="form-select" required>
+                    {% for collection_name in collection_names %}
+                    <option value="{{ collection_name }}">{{ collection_name }}</option>
                     {% endfor %}
                     <option value="create_new">Create New List</option>
                 </select>
             </div>
-            <div class="form-group" id="new_list_name_container" style="display: none;">
-                <label for="new_list_name">New List Name:</label>
-                <input type="text" name="new_list_name" id="new_list_name" class="form-control">
+            <div class="mb-3" id="new_list_name_container" style="display: none;">
+                <label for="new_list_name" class="form-label">New List Name:</label>
+                <input type="text" id="new_list_name" name="new_list_name" class="form-control">
             </div>
-            <div class="form-group">
-                <label for="quantity">Quantity:</label>
-                <input type="number" name="quantity" id="quantity" class="form-control" min="1" value="1">
+            <div class="mb-3">
+                <label for="quantity" class="form-label">Quantity:</label>
+                <input type="number" id="quantity" name="quantity" class="form-control" value="{{ collections[set_item.id] if set_item.id in collections else 0 }}" min="0" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Add to Collection</button>
+            <button type="submit" class="btn btn-primary w-100">Update Collection</button>
         </form>
 
-        <h3 class="mt-4">Collections</h3>
-        <ul class="list-group">
-            {% for list_name, quantity in collections.items() %}
-                <li class="list-group-item">
-                    {{ list_name }}: {{ quantity }}
-                    <form action="/update_collection/{{ set_item.id }}/{{ list_name }}" method="POST" class="d-inline float-end">
-                        <input type="number" name="quantity" class="form-control d-inline" style="width: 80px;" min="0" value="{{ quantity }}">
-                        <button type="submit" class="btn-update btn btn-sm">Update</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-
-        <a href="/" class="btn btn-secondary w-100 mt-2">Go Back</a>
+        <h2>Manage Collections</h2>
+        {% for list_name, quantity in collections.items() %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ list_name }}</h5>
+                <p class="card-text"><strong>Quantity:</strong> {{ quantity }}</p>
+                <form action="{{ url_for('update_collection', set_id=set_item.id, list_name=list_name) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="action" value="add">
+                    <button type="submit" class="btn btn-success">Add 1</button>
+                </form>
+                <form action="{{ url_for('update_collection', set_id=set_item.id, list_name=list_name) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="action" value="subtract">
+                    <button type="submit" class="btn btn-warning">Subtract 1</button>
+                </form>
+                <form action="{{ url_for('update_collection', set_id=set_item.id, list_name=list_name) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="action" value="remove">
+                    <button type="submit" class="btn btn-danger">Remove from Collection</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
     <script>
-        document.getElementById('owned_list').addEventListener('change', function() {
-            var newListContainer = document.getElementById('new_list_name_container');
+        document.getElementById('owned_list').addEventListener('change', function () {
+            var new_list_name_container = document.getElementById('new_list_name_container');
             if (this.value === 'create_new') {
-                newListContainer.style.display = 'block';
+                new_list_name_container.style.display = 'block';
             } else {
-                newListContainer.style.display = 'none';
+                new_list_name_container.style.display = 'none';
             }
         });
     </script>

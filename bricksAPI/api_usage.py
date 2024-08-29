@@ -7,23 +7,26 @@ import config
 def extract_hash(json_data):
     data = json.loads(json_data)
     return data.get('hash') if data.get('status') == 'success' else None
-
+    
 
 def extract_set_data(json_data):
     data = json.loads(json_data)
-    set_info = data['sets'][0]
+    if data and 'sets' in data and len(data['sets']) > 0:
+        set_info = data['sets'][0]
 
-    pieces = set_info.get('pieces', 0)
+        pieces = set_info.get('pieces', 0)
 
-    return {
-        'setID': set_info.get('setID'),
-        'number': set_info.get('number'),
-        'name': set_info.get('name'),
-        'ean': set_info.get('barcode', {}).get('EAN'),
-        'price': set_info.get('LEGOCom', {}).get('DE', {}).get('retailPrice'),
-        'pieces': pieces,
-        'image_url': set_info['image']['imageURL'],
-    }
+        return {
+            'setID': set_info.get('setID'),
+            'number': set_info.get('number'),
+            'name': set_info.get('name'),
+            'ean': set_info.get('barcode', {}).get('EAN'),
+            'price': set_info.get('LEGOCom', {}).get('DE', {}).get('retailPrice'),
+            'pieces': pieces,
+            'image_url': set_info['image']['imageURL'],
+        }
+    else:
+        return None
 
 
 def get_user_hash():

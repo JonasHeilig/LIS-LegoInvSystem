@@ -41,9 +41,8 @@ def search_api():
     if request.method == 'POST':
         query = request.form.get('query')
         if query:
-            data = api_usage.get_set_data(query)
-            if data and 'sets' in data and len(data['sets']) > 0:
-                set_data = data['sets'][0]
+            set_data = api_usage.get_set_data(query)
+            if set_data:
                 result = LIS.query.filter(
                     (LIS.ean == set_data.get('ean', '')) |
                     (LIS.ls_id == set_data.get('number', ''))
@@ -119,11 +118,18 @@ def add_to_collection(set_id):
 
 @app.route('/update_collection/<int:set_id>/<string:list_name>', methods=['POST'])
 def update_collection(set_id, list_name):
-    quantity = int(request.form.get('quantity', 0))
+    action = request.form.get('action')
     collection_entry = Collection.query.filter_by(set_id=set_id, list_name=list_name).first_or_404()
-    collection_entry.quantity = quantity
+
+    if action == 'add':
+        collection_entry.quantity += 1
+    elif action == 'subtract':
+        collection_entry.quantity = max(0, collection_entry.quantity - 1)
+    elif action == 'remove':
+        db.session.delete(collection_entry)
+
     db.session.commit()
-    return redirect(url_for('collection', list_name=list_name))
+    return redirect(url_for('set_detail', set_id=set_id))
 
 
 @app.route('/collection_lists', methods=['GET'])
